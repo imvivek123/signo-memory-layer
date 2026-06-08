@@ -15,6 +15,8 @@ LangGraph orchestrates the memory steps so each workflow has a clear order:
 identify the driver, fetch memory, build context, and save new memory.
 """
 
+import json
+
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -291,16 +293,26 @@ def save_memory_with_graph(payload: OmniDimensionWebhookPayload):
 
     print("[OmniDimension] Webhook received")
     payload_dict = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
+
+    print("=" * 80)
+    print("RAW OMNIDIMENSION WEBHOOK PAYLOAD")
+    print(json.dumps(payload_dict, indent=2, default=str))
+    print("=" * 80)
+
     compressed_memory = extract_memory(payload_dict)
     print(f"[MemoryExtractor] Compressed memory: {compressed_memory}")
+    print("[DEBUG] Extracted phone_number:", compressed_memory.get("phone_number"))
+    print("[DEBUG] Extracted driver_id:", compressed_memory.get("driver_id"))
 
     phone_number = compressed_memory["phone_number"]
 
     if not phone_number:
-        raise HTTPException(
-            status_code=400,
-            detail="driver_mobile_number was not found in the OmniDimension payload.",
-        )
+        return {
+            "message": "Webhook received successfully",
+            "warning": "phone_number missing",
+            "compressed_memory": compressed_memory,
+            "raw_payload": payload_dict,
+        }
 
     initial_state = {
         "compressed_memory": compressed_memory,

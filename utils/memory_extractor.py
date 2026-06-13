@@ -60,6 +60,18 @@ def _normalize_text(value: Any) -> str:
     return str(value).strip()
 
 
+def _first_non_empty(*values: Any) -> str:
+    """Return the first value that normalizes to a non-empty string."""
+
+    for value in values:
+        normalized_value = _normalize_text(value)
+
+        if normalized_value:
+            return normalized_value
+
+    return ""
+
+
 def _detect_sentiment(*texts: str) -> str:
     """Detect simple negative/neutral sentiment from business keywords."""
 
@@ -121,26 +133,60 @@ def extract_memory(payload: dict[str, Any]) -> dict[str, Any]:
         default={},
     )
 
-    phone_number = _normalize_text(
+    if not isinstance(extracted_variables, dict):
+        extracted_variables = {}
+
+    call_direction = _normalize_text(payload.get("call_direction")).lower()
+    payload_phone_number = _normalize_text(payload.get("phone_number"))
+    from_number = _normalize_text(payload.get("from_number"))
+    to_number = _normalize_text(payload.get("to_number"))
+    driver_mobile_number = _normalize_text(
         _safe_get(extracted_variables, "driver_mobile_number")
     )
-    driver_id = _normalize_text(
-        _safe_get(extracted_variables, "driver_id")
-    )
+
+    print("CALL DIRECTION:", payload.get("call_direction"))
+    print("PHONE NUMBER FIELD:", payload.get("phone_number"))
+    print("FROM NUMBER:", payload.get("from_number"))
+    print("TO NUMBER:", payload.get("to_number"))
+
+    if call_direction == "outbound":
+        phone_number = _first_non_empty(
+            driver_mobile_number,
+            to_number,
+            payload_phone_number,
+            from_number,
+        )
+    else:
+        phone_number = _first_non_empty(
+            driver_mobile_number,
+            payload_phone_number,
+            from_number,
+            to_number,
+        )
+
+    print("FINAL EXTRACTED PHONE:", phone_number)
+
+    driver_id = _normalize_text(_safe_get(extracted_variables, "driver_id"))
     language = _normalize_text(
         _safe_get(extracted_variables, "language")
     )
     issue_category = _normalize_text(
         _safe_get(extracted_variables, "category_selected")
     )
-    issue_summary = _normalize_text(
-        _safe_get(extracted_variables, "query_description")
-    )
-    conversation_summary = _normalize_text(
-        _safe_get(extracted_variables, "conversation_summary")
-    )
-    call_summary = _normalize_text(
+
+    call_report_summary = _normalize_text(
         _safe_get(payload, "call_report", "summary")
+    )
+    payload_summary = _normalize_text(payload.get("summary"))
+    conversation_summary = _first_non_empty(
+        _safe_get(extracted_variables, "conversation_summary"),
+        call_report_summary,
+        payload_summary,
+    )
+    call_summary = _first_non_empty(call_report_summary, payload_summary)
+    issue_summary = _first_non_empty(
+        _safe_get(extracted_variables, "query_description"),
+        call_summary,
     )
 
     sentiment = _detect_sentiment(
@@ -165,4 +211,5 @@ def extract_memory(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
     print("[MemoryExtractor] Compressed memory object created.")
+    print("[MemoryExtractor] Final compressed memory:", compressed_memory)
     return compressed_memory

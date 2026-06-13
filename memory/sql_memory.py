@@ -285,6 +285,44 @@ def get_open_tickets(driver_id):
             connection.close()
 
 
+def get_recent_call_logs(phone_number):
+    """Fetch recent conversation summaries for one phone number."""
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+        cursor = connection.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            SELECT
+                issue_summary,
+                conversation_summary,
+                created_at
+            FROM call_logs
+            WHERE phone_number = %s
+            ORDER BY created_at DESC
+            LIMIT 5;
+        """
+
+        cursor.execute(query, (phone_number,))
+        rows = cursor.fetchall()
+
+        return _clean_rows(rows)
+
+    except Exception as error:
+        print(f"Error fetching recent call logs: {error}")
+        return []
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
+
 def save_call_log(driver_id, compressed_memory):
     """Store one compressed conversational memory in the call_logs table.
 

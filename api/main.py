@@ -261,11 +261,14 @@ def get_memory_context(
 ):
     """Run the LangGraph during-call memory retrieval workflow."""
 
+    print(f"[API] Memory context requested for phone number: {phone_number}")
+
     initial_state = {
         "phone_number": phone_number,
         "driver_data": {},
         "payments": [],
         "tickets": [],
+        "recent_calls": [],
         "semantic_memories": [],
         "call_summary": query or "",
         "intent": "",
@@ -280,6 +283,7 @@ def get_memory_context(
     return {
         "phone_number": phone_number,
         "context": final_state.get("final_context", ""),
+        "recent_calls": final_state.get("recent_calls", []),
         "semantic_memories": final_state.get("semantic_memories", []),
     }
 

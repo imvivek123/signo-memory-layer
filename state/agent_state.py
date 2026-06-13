@@ -17,6 +17,7 @@ class AgentState(TypedDict, total=False):
     driver_data: dict
     payments: list
     tickets: list
+    recent_calls: list
     semantic_memories: list
     call_summary: str
     intent: str

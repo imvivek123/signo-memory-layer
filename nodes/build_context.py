@@ -73,8 +73,40 @@ def _format_semantic_memories(memories: list) -> str:
     return "\n".join(lines)
 
 
+def _format_recent_calls(recent_calls: list) -> str:
+    """Format recent PostgreSQL call logs as readable conversation history."""
+
+    if not recent_calls:
+        return "Previous Interactions:\n- None"
+
+    lines = ["Previous Interactions:"]
+
+    for index, call in enumerate(recent_calls, start=1):
+        if not isinstance(call, dict):
+            lines.extend(["", f"Call {index}:", f"Summary: {call}"])
+            continue
+
+        issue = call.get("issue_summary") or "Not provided"
+        summary = call.get("conversation_summary") or "Not provided"
+        created_at = call.get("created_at")
+
+        lines.extend(
+            [
+                "",
+                f"Call {index}:",
+                f"Issue: {issue}",
+                f"Summary: {summary}",
+            ]
+        )
+
+        if created_at:
+            lines.append(f"Created At: {created_at}")
+
+    return "\n".join(lines)
+
+
 def build_context(state: AgentState) -> AgentState:
-    """Combine structured and semantic memory into one context string."""
+    """Combine PostgreSQL memory into one context string."""
 
     print("[LangGraph] Building final context...")
 
@@ -82,7 +114,7 @@ def build_context(state: AgentState) -> AgentState:
         driver_data = state.get("driver_data") or {}
         payments = state.get("payments") or []
         tickets = state.get("tickets") or []
-        semantic_memories = state.get("semantic_memories") or []
+        recent_calls = state.get("recent_calls") or []
         is_new_driver = state.get("new_driver", False)
 
         context_sections = [
@@ -90,11 +122,11 @@ def build_context(state: AgentState) -> AgentState:
             "",
         ]
 
-        if is_new_driver or (not payments and not tickets and not semantic_memories):
+        if is_new_driver or (not payments and not tickets and not recent_calls):
             context_sections.extend(
                 [
                     "New Driver Detected",
-                    "No previous payments, tickets, or semantic memories were found.",
+                    "No previous payments, tickets, or call history were found.",
                     "",
                 ]
             )
@@ -107,13 +139,13 @@ def build_context(state: AgentState) -> AgentState:
                 "",
                 _format_list("Open Tickets", tickets),
                 "",
-                _format_semantic_memories(semantic_memories),
+                _format_recent_calls(recent_calls),
             ]
         )
 
         final_context = "\n".join(context_sections)
 
-        print("[LangGraph] Final context built.")
+        print(f"[LangGraph] Final context generated with {len(final_context)} characters.")
         return {"final_context": final_context}
 
     except Exception as error:

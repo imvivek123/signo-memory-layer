@@ -251,15 +251,8 @@ def get_semantic_memory(
     }
 
 
-@app.get("/memory/context/{phone_number}")
-def get_memory_context(
-    phone_number: str,
-    query: str | None = Query(
-        default=None,
-        description="Optional current issue summary used for semantic search.",
-    ),
-):
-    """Run the LangGraph during-call memory retrieval workflow."""
+def retrieve_memory_context(phone_number: str, query: str | None = None):
+    """Run the shared LangGraph memory retrieval workflow."""
 
     print(f"[API] Memory context requested for phone number: {phone_number}")
 
@@ -286,6 +279,35 @@ def get_memory_context(
         "recent_calls": final_state.get("recent_calls", []),
         "semantic_memories": final_state.get("semantic_memories", []),
     }
+
+
+@app.get("/memory/context")
+def get_memory_context_from_query(
+    phone_number: str = Query(
+        ...,
+        description="Driver phone number used to retrieve PostgreSQL memory.",
+    ),
+    query: str | None = Query(
+        default=None,
+        description="Optional current issue summary used for semantic search.",
+    ),
+):
+    """Return memory context using phone_number from a query parameter."""
+
+    return retrieve_memory_context(phone_number=phone_number, query=query)
+
+
+@app.get("/memory/context/{phone_number}")
+def get_memory_context(
+    phone_number: str,
+    query: str | None = Query(
+        default=None,
+        description="Optional current issue summary used for semantic search.",
+    ),
+):
+    """Run the LangGraph during-call memory retrieval workflow."""
+
+    return retrieve_memory_context(phone_number=phone_number, query=query)
 
 
 @app.post("/memory/save")

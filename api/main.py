@@ -18,6 +18,7 @@ identify the driver, fetch memory, build context, and save new memory.
 import json
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from graphs.fetch_memory_graph import fetch_memory_graph
@@ -40,6 +41,15 @@ app = FastAPI(
     title="Signo Memory Layer API",
     description="Backend memory layer for Signo's OmniDimension voice AI agent.",
     version="0.1.0",
+)
+
+# Allow browser-based API integrations such as OmniDimension to access the API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

@@ -18,6 +18,8 @@ from uuid import uuid4
 
 from dotenv import load_dotenv
 
+from utils.phone_normalization import normalize_phone
+
 
 load_dotenv()
 
@@ -172,6 +174,7 @@ def save_memory(phone_number, text, metadata):
 
     try:
         print("Saving vector memory...")
+        phone_number = normalize_phone(phone_number)
 
         embedding = get_embedding(text)
 
@@ -222,6 +225,7 @@ def search_memories(phone_number, query):
 
     try:
         print("Searching semantic memories...")
+        phone_number = normalize_phone(phone_number)
 
         query_embedding = get_embedding(query)
 

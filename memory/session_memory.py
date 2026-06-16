@@ -10,6 +10,8 @@ import os
 import redis
 from dotenv import load_dotenv
 
+from utils.phone_normalization import normalize_phone
+
 
 # Load Redis settings from the .env file.
 # Example: REDIS_HOST=localhost and REDIS_PORT=6379
@@ -38,6 +40,7 @@ def get_redis_client():
 def _session_key(phone_number):
     """Create one consistent Redis key for a driver's session memory."""
 
+    phone_number = normalize_phone(phone_number)
     return f"driver_session:{phone_number}"
 
 

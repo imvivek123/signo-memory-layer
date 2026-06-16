@@ -33,6 +33,7 @@ from memory.sql_memory import (
 from memory.vector_memory import save_memory, search_memories
 from models.request_models import OmniDimensionWebhookPayload
 from utils.memory_extractor import extract_memory
+from utils.phone_normalization import log_phone_normalization, normalize_phone
 
 
 # Create the FastAPI app object.
@@ -115,6 +116,10 @@ def get_driver_memory(phone_number: str):
     3. Fresh PostgreSQL data is saved back into Redis for the next request.
     """
 
+    original_phone_number = phone_number
+    phone_number = normalize_phone(phone_number)
+    log_phone_normalization(original_phone_number, phone_number)
+
     print("Fetching from Redis cache...")
     cached_driver_memory = get_session(phone_number)
 
@@ -177,7 +182,10 @@ def create_call_log(call_log: CallLogRequest):
             "stored": False,
         }
 
-    driver = get_driver_by_phone(call_log.phone_number)
+    phone_number = normalize_phone(call_log.phone_number)
+    log_phone_normalization(call_log.phone_number, phone_number)
+
+    driver = get_driver_by_phone(phone_number)
 
     if driver is None:
         raise HTTPException(
@@ -188,7 +196,7 @@ def create_call_log(call_log: CallLogRequest):
     saved_call_log = save_call_log(
         driver_id=driver["driver_id"],
         compressed_memory={
-            "phone_number": call_log.phone_number,
+            "phone_number": phone_number,
             "driver_id": driver["driver_id"],
             "language": "",
             "issue_category": call_log.intent or "",
@@ -208,7 +216,7 @@ def create_call_log(call_log: CallLogRequest):
         )
 
     semantic_memory = save_memory(
-        phone_number=call_log.phone_number,
+        phone_number=phone_number,
         text=f"""
 Issue:
 
@@ -218,7 +226,7 @@ Summary:
 {call_log.call_summary}
 """.strip(),
         metadata={
-            "phone_number": call_log.phone_number,
+            "phone_number": phone_number,
             "driver_id": driver["driver_id"],
             "issue_category": call_log.intent or "",
             "sentiment": call_log.sentiment or "",
@@ -226,7 +234,7 @@ Summary:
             "timestamp": saved_call_log.get("created_at"),
         },
     )
-    clear_session(call_log.phone_number)
+    clear_session(phone_number)
 
     return {
         "message": "Call log saved successfully",
@@ -252,6 +260,10 @@ def get_semantic_memory(
     payment last week," even though the wording is different.
     """
 
+    original_phone_number = phone_number
+    phone_number = normalize_phone(phone_number)
+    log_phone_normalization(original_phone_number, phone_number)
+
     matches = search_memories(phone_number=phone_number, query=query)
 
     return {
@@ -263,6 +275,10 @@ def get_semantic_memory(
 
 def retrieve_memory_context(phone_number: str, query: str | None = None):
     """Run the shared LangGraph memory retrieval workflow."""
+
+    original_phone_number = phone_number
+    phone_number = normalize_phone(phone_number)
+    log_phone_normalization(original_phone_number, phone_number)
 
     print(f"[API] Memory context requested for phone number: {phone_number}")
 
@@ -340,7 +356,8 @@ def save_memory_with_graph(payload: OmniDimensionWebhookPayload):
     print("[DEBUG] Extracted phone_number:", compressed_memory.get("phone_number"))
     print("[DEBUG] Extracted driver_id:", compressed_memory.get("driver_id"))
 
-    phone_number = compressed_memory["phone_number"]
+    phone_number = normalize_phone(compressed_memory["phone_number"])
+    compressed_memory["phone_number"] = phone_number
 
     if not phone_number:
         return {

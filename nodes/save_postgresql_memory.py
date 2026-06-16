@@ -2,6 +2,7 @@
 
 from state.agent_state import AgentState
 from memory.sql_memory import create_driver, get_driver_by_phone, save_call_log
+from utils.phone_normalization import log_phone_normalization, normalize_phone
 
 
 def save_postgresql_memory(state: AgentState) -> AgentState:
@@ -11,8 +12,14 @@ def save_postgresql_memory(state: AgentState) -> AgentState:
 
     try:
         compressed_memory = state.get("compressed_memory") or {}
-        phone_number = compressed_memory.get("phone_number", "")
+        original_phone_number = compressed_memory.get("phone_number", "")
+        phone_number = normalize_phone(original_phone_number)
+        compressed_memory = {
+            **compressed_memory,
+            "phone_number": phone_number,
+        }
         call_summary = compressed_memory.get("call_summary", "")
+        log_phone_normalization(original_phone_number, phone_number)
 
         if not phone_number or not call_summary:
             print("[LangGraph] PostgreSQL save skipped because required data is missing.")

@@ -3,6 +3,7 @@
 from state.agent_state import AgentState
 from memory.session_memory import clear_session
 from memory.vector_memory import save_memory
+from utils.phone_normalization import normalize_phone
 
 
 def save_semantic_memory(state: AgentState) -> AgentState:
@@ -19,7 +20,7 @@ def save_semantic_memory(state: AgentState) -> AgentState:
         saved_call_log = state.get("saved_call_log") or {}
         driver_data = state.get("driver_data") or {}
 
-        phone_number = compressed_memory.get("phone_number", "")
+        phone_number = normalize_phone(compressed_memory.get("phone_number", ""))
         call_summary = compressed_memory.get("call_summary", "")
         issue_summary = compressed_memory.get("issue_summary", "")
         conversation_summary = compressed_memory.get("conversation_summary", "")

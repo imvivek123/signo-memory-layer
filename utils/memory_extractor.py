@@ -7,6 +7,8 @@ the payload into only the information Signo should remember.
 
 from typing import Any
 
+from utils.phone_normalization import normalize_phone
+
 
 NEGATIVE_KEYWORDS = [
     "delay",
@@ -165,6 +167,8 @@ def extract_memory(payload: dict[str, Any]) -> dict[str, Any]:
         )
 
     print("FINAL EXTRACTED PHONE:", phone_number)
+    phone_number = normalize_phone(phone_number)
+    print("FINAL NORMALIZED PHONE:", phone_number)
 
     driver_id = _normalize_text(_safe_get(extracted_variables, "driver_id"))
     language = _normalize_text(

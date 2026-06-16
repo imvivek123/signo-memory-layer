@@ -12,6 +12,8 @@ import psycopg2
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
+from utils.phone_normalization import log_phone_normalization, normalize_phone
+
 
 # Load database settings from the .env file.
 # This keeps passwords and machine-specific settings out of the Python code.
@@ -101,6 +103,9 @@ def get_driver_by_phone(phone_number):
     cursor = None
 
     try:
+        normalized_phone = normalize_phone(phone_number)
+        log_phone_normalization(phone_number, normalized_phone)
+
         connection = get_connection()
 
         # RealDictCursor returns rows as dictionaries instead of tuples.
@@ -110,13 +115,13 @@ def get_driver_by_phone(phone_number):
         query = """
             SELECT driver_id, phone_number, name, truck_number, preferred_language
             FROM drivers
-            WHERE phone_number = %s
+            WHERE REPLACE(phone_number, '+', '') = %s
             LIMIT 1;
         """
 
         # Always pass query values separately instead of formatting strings.
         # This helps protect the app from SQL injection.
-        cursor.execute(query, (phone_number,))
+        cursor.execute(query, (normalized_phone,))
         row = cursor.fetchone()
 
         return _clean_row(row)
@@ -150,7 +155,10 @@ def create_driver(
     cursor = None
 
     try:
+        normalized_phone = normalize_phone(phone_number)
+
         print(f"Creating driver profile for phone number: {phone_number}")
+        print(f"Creating normalized driver profile for phone number: {normalized_phone}")
 
         connection = get_connection()
         cursor = connection.cursor(cursor_factory=RealDictCursor)
@@ -171,7 +179,7 @@ def create_driver(
         cursor.execute(
             query,
             (
-                phone_number,
+                normalized_phone,
                 name,
                 truck_number,
                 preferred_language,
@@ -292,6 +300,9 @@ def get_recent_call_logs(phone_number):
     cursor = None
 
     try:
+        normalized_phone = normalize_phone(phone_number)
+        log_phone_normalization(phone_number, normalized_phone)
+
         connection = get_connection()
         cursor = connection.cursor(cursor_factory=RealDictCursor)
 
@@ -301,12 +312,12 @@ def get_recent_call_logs(phone_number):
                 conversation_summary,
                 created_at
             FROM call_logs
-            WHERE phone_number = %s
+            WHERE REPLACE(phone_number, '+', '') = %s
             ORDER BY created_at DESC
             LIMIT 5;
         """
 
-        cursor.execute(query, (phone_number,))
+        cursor.execute(query, (normalized_phone,))
         rows = cursor.fetchall()
 
         return _clean_rows(rows)
@@ -342,7 +353,7 @@ def save_call_log(driver_id, compressed_memory):
         cursor = connection.cursor(cursor_factory=RealDictCursor)
         _ensure_clean_call_log_columns(cursor)
 
-        phone_number = compressed_memory.get("phone_number", "")
+        phone_number = normalize_phone(compressed_memory.get("phone_number", ""))
         language = compressed_memory.get("language", "")
         issue_category = compressed_memory.get("issue_category", "")
         issue_summary = compressed_memory.get("issue_summary", "")

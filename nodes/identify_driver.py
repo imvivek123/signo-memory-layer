@@ -2,6 +2,7 @@
 
 from state.agent_state import AgentState
 from memory.sql_memory import create_driver, get_driver_by_phone
+from utils.phone_normalization import log_phone_normalization, normalize_phone
 
 
 def identify_driver(state: AgentState) -> AgentState:
@@ -11,8 +12,10 @@ def identify_driver(state: AgentState) -> AgentState:
 
     try:
         compressed_memory = state.get("compressed_memory") or {}
-        phone_number = state.get("phone_number") or compressed_memory.get("phone_number", "")
+        original_phone_number = state.get("phone_number") or compressed_memory.get("phone_number", "")
+        phone_number = normalize_phone(original_phone_number)
         language = compressed_memory.get("language") or "English"
+        log_phone_normalization(original_phone_number, phone_number)
 
         if not phone_number:
             print("[LangGraph] No phone number provided.")

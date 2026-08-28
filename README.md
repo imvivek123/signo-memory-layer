@@ -91,45 +91,9 @@ signo-memory-layer/
 pip install -r requirements.txt
 ```
 
-## Environment Variables
 
-Update `.env` with your local PostgreSQL and Redis settings:
 
-```env
-DB_NAME=signo_memory
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_HOST=localhost
-DB_PORT=5432
 
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-PINECONE_API_KEY=your_pinecone_api_key
-PINECONE_INDEX=signo-memory
-```
-
-## PostgreSQL Setup
-
-Make sure PostgreSQL is running and the `signo_memory` database exists.
-
-Create or update the required tables:
-
-```powershell
-& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -d signo_memory -f database_schema.sql
-```
-
-Test PostgreSQL:
-
-```bash
-python test_connection.py
-```
-
-Expected output:
-
-```text
-Database Connected Successfully
-```
 
 ## Redis Setup
 
